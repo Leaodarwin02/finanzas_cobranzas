@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinanCore S.A.A.S. - Contabilidad, Créditos y Cobranzas</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background-color: #f1f5f9; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    .bg-header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+    .card-header-custom { background-color: #e2e8f0; border-bottom: 2px solid #cbd5e1; }
+    .kpi-card { border-left: 4px solid #3b82f6; transition: transform 0.2s; }
+    .kpi-card:hover { transform: translateY(-2px); }
+    .kpi-danger { border-left-color: #ef4444; }
+    .kpi-success { border-left-color: #10b981; }
+    .kpi-warning { border-left-color: #f59e0b; }
+    .nav-pills .nav-link.active { background-color: #0f172a; }
+    .badge-score-alto { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .badge-score-medio { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+    .badge-score-bajo { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR PRINCIPAL CON SWITCH DE ROL -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-header mb-4 shadow">
+    <div class="container">
+      <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+        <i class="bi bi-bank2 me-2 text-info fs-4"></i>
+        <div>
+          <span>FinanCore S.A.A.S.</span>
+          <small class="d-block text-white-50" style="font-size: 0.7rem;">Contabilidad, Finanzas, Créditos y Cobranzas</small>
+        </div>
+      </a>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="btn-group" role="group" aria-label="Selector de Vista">
+          <input type="radio" class="btn-check" name="rolSwitch" id="rolCliente" autocomplete="off" checked onchange="cambiarVista('cliente')">
+          <label class="btn btn-outline-info btn-sm fw-bold" for="rolCliente">
+            <i class="bi bi-person-circle me-1"></i>Vista Cliente
+          </label>
+
+          <input type="radio" class="btn-check" name="rolSwitch" id="rolAdmin" autocomplete="off" onchange="cambiarVista('admin')">
+          <label class="btn btn-outline-warning btn-sm fw-bold" for="rolAdmin">
+            <i class="bi bi-shield-lock me-1"></i>Vista Administrador / Riesgos
+          </label>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mb-5">
+
+    <!-- ALERTAS GLOBALES -->
+    <div id="alertaError" class="alert alert-danger d-none shadow-sm" role="alert"></div>
+    <div id="alertaExito" class="alert alert-success d-none shadow-sm" role="alert"></div>
+
+    <!-- ===================================================================== -->
+    <!-- 1. VISTA DEL CLIENTE (SOLICITUD DE CRÉDITO Y ESTADO DE CUENTA)        -->
+    <!-- ===================================================================== -->
+    <div id="seccionCliente">
+      
+      <div class="row g-4">
+        <!-- COLUMNA IZQUIERDA: IDENTIFICACIÓN Y SIMULADOR -->
+        <div class="col-lg-7">
+          <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header card-header-custom fw-bold text-dark d-flex justify-content-between">
+              <span><i class="bi bi-person-vcard me-2"></i>1. Identificación del Cliente (Tabla: <code>clientes</code> / <code>cuenta_corriente</code>)</span>
+            </div>
+            <div class="card-body">
+              <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                  <label class="form-label text-muted small fw-bold">SELECCIONAR CLIENTE DEMO</label>
+                  <select class="form-select border-primary-subtle" id="selectClienteDemo" onchange="cargarDatosCliente()">
+                    <option value="1">76112233 - Carlos Mendoza (Buen Historial)</option>
+                    <option value="2">20601234561 - Inversiones Sur SAC (Empresa)</option>
+                    <option value="3">45889911 - Jorge Quispe (Con Mora / Riesgo)</option>
+                    <option value="nuevo">+ Nuevo Cliente (Registrar)</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label text-muted small fw-bold">DNI / RUC</label>
+                  <input type="text" class="form-control bg-light" id="cli_doc" readonly>
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label text-muted small fw-bold">NOMBRE / RAZÓN SOCIAL</label>
+                  <input type="text" class="form-control bg-light" id="cli_nombre" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label text-muted small fw-bold">N° CUENTA CORRIENTE</label>
+                  <input type="text" class="form-control bg-light fw-bold text-primary" id="cli_cuenta" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label text-muted small fw-bold">SALDO DISPONIBLE</label>
+                  <input type="text" class="form-control bg-light fw-bold text-success" id="cli_saldo" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label text-muted small fw-bold">INGRESOS MENSUALES</label>
+                  <input type="text" class="form-control bg-light" id="cli_ingresos" readonly>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FORMULARIO SOLICITUD DE CRÉDITO -->
+          <div class="card shadow-sm border-0">
+            <div class="card-header card-header-custom fw-bold text-dark">
+              <i class="bi bi-cash-coin me-2"></i>2. Solicitar Nuevo Crédito (Tablas: <code>creditos</code> + <code>colocar</code>)
+            </div>
+            <div class="card-body">
+              <form id="formSolicitudCredito" onsubmit="return false;">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">TIPO DE CRÉDITO</label>
+                    <select class="form-select" id="cred_tipo" onchange="simularCredito()">
+                      <option value="Consumo Personal" data-tea="24.0">Crédito Consumo Personal (TEA 24%)</option>
+                      <option value="Capital de Trabajo" data-tea="18.5">Crédito Capital de Trabajo PYME (TEA 18.5%)</option>
+                      <option value="Activo Fijo" data-tea="15.0">Crédito Activo Fijo / Maquinaria (TEA 15%)</option>
+                      <option value="Microempresa" data-tea="32.0">Microcrédito Express (TEA 32%)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">MONTO SOLICITADO (S/)</label>
+                    <input type="number" class="form-control" id="cred_monto" value="5000" min="500" max="100000" step="100" oninput="simularCredito()">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">PLAZO (MESES)</label>
+                    <select class="form-select" id="cred_plazo" onchange="simularCredito()">
+                      <option value="6">6 meses</option>
+                      <option value="12" selected>12 meses</option>
+                      <option value="18">18 meses</option>
+                      <option value="24">24 meses</option>
+                      <option value="36">36 meses</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label text-muted small fw-bold">ASESOR / COLOCADOR (<code>personal</code>)</label>
+                    <select class="form-select" id="cred_asesor">
+                      <option value="P01">Ana Torres (Analista Senior)</option>
+                      <option value="P02">Luis Paredes (Gestor Comercial)</option>
+                    </select>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label text-muted small fw-bold">DESTINO DEL CRÉDITO / GARANTÍA</label>
+                    <input type="text" class="form-control" id="cred_destino" placeholder="Ej: Compra de mercadería / Equipamiento de local" value="Ampliación de inventario">
+                  </div>
+                </div>
+
+                <!-- RESUMEN DE SIMULACIÓN -->
+                <div class="alert alert-info mt-4 mb-3 border-0 shadow-sm">
+                  <div class="row text-center">
+                    <div class="col-4 border-end">
+                      <small class="text-muted d-block">Cuota Mensual Est.</small>
+                      <strong class="fs-5 text-dark" id="sim_cuota">S/ 0.00</strong>
+                    </div>
+                    <div class="col-4 border-end">
+                      <small class="text-muted d-block">Interés Total</small>
+                      <strong class="fs-5 text-primary" id="sim_interes">S/ 0.00</strong>
+                    </div>
+                    <div class="col-4">
+                      <small class="text-muted d-block">Total a Pagar</small>
+                      <strong class="fs-5 text-success" id="sim_total">S/ 0.00</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" onclick="enviarSolicitudCredito()">
+                  <i class="bi bi-send-check me-2"></i>ENVIAR SOLICITUD DE CRÉDITO
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: MIS CRÉDITOS Y PAGOS -->
+        <div class="col-lg-5">
+          <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header card-header-custom fw-bold text-dark">
+              <i class="bi bi-shield-check me-2"></i>Evaluación Preliminar (<code>central_riesgo</code>)
+            </div>
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted">Calificación SBS / Central Riesgo:</span>
+                <span id="cli_calificacion_sbs" class="badge bg-success fs-6">NORMAL (100%)</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted">Score Crediticio:</span>
+                <strong id="cli_score">850 / 1000 pts</strong>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">Deuda Externa Reportada:</span>
+                <strong id="cli_deuda_ext">S/ 0.00</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- CRÉDITOS DEL CLIENTE -->
+          <div class="card shadow-sm border-0">
+            <div class="card-header card-header-custom fw-bold text-dark">
+              <i class="bi bi-journal-text me-2"></i>Mis Créditos Activos y Historial
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                  <thead class="table-light small">
+                    <tr>
+                      <th class="ps-3">ID / TIPO</th>
+                      <th>SALDO</th>
+                      <th>ESTADO</th>
+                      <th class="text-end pe-3">ACCIÓN</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyCreditosCliente"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 2. VISTA ADMINISTRADOR (RIESGOS, COBRANZAS, CONTABILIDAD Y RATIOS)    -->
+    <!-- ===================================================================== -->
+    <div id="seccionAdmin" class="d-none">
+      
+      <!-- NAVEGACIÓN DE MÓDULOS ADMINISTRATIVOS -->
+      <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active fw-bold" id="tab-analista" data-bs-toggle="pill" data-bs-target="#panel-analista" type="button">
+            <i class="bi bi-clipboard-check me-1"></i>Panel Analista Créditos (<code>vw_panel_analista_creditos</code>)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-bold" id="tab-cobranzas" data-bs-toggle="pill" data-bs-target="#panel-cobranzas" type="button">
+            <i class="bi bi-exclamation-octagon me-1"></i>Gestor de Cobranzas (<code>vw_panel_gestor_cobranzas</code>)
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-bold" id="tab-ratios" data-bs-toggle="pill" data-bs-target="#panel-ratios" type="button">
+            <i class="bi bi-graph-up-arrow me-1"></i>Finanzas, Contabilidad y Ratios
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link fw-bold" id="tab-transacciones" data-bs-toggle="pill" data-bs-target="#panel-transacciones" type="button">
+            <i class="bi bi-arrow-left-right me-1"></i>Libro Transacciones (<code>transaccion</code>)
+          </button>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="adminTabsContent">
+
+        <!-- SUB-PANEL A: ANALISTA DE CRÉDITOS & DECISIONES POR CARGO -->
+        <div class="tab-pane fade show active" id="panel-analista" role="tabpanel">
+          <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header card-header-custom fw-bold d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-person-workspace me-2"></i>Evaluación de Solicitudes y Riesgo Crediticio</span>
+              <span class="badge bg-dark">Vista: vw_panel_analista_creditos + vw_decisiones_por_cargo</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light small text-muted">
+                    <tr>
+                      <th class="ps-3">CRÉDITO</th>
+                      <th>CLIENTE (<code>clientes</code>)</th>
+                      <th>CENTRAL RIESGO</th>
+                      <th>INGRESOS / CUENTA</th>
+                      <th>MONTO / CUOTA</th>
+                      <th>NIVEL APROBACIÓN (<code>personal</code>)</th>
+                      <th class="text-center pe-3">DECISIÓN</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyAnalista"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-PANEL B: GESTOR DE COBRANZAS Y MOROSIDAD -->
+        <div class="tab-pane fade" id="panel-cobranzas" role="tabpanel">
+          
+          <!-- FILTROS RÁPIDOS DE CARTERA -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <div class="card kpi-card shadow-sm border-0">
+                <div class="card-body">
+                  <small class="text-muted fw-bold">TOTAL CARTERA COLOCADA</small>
+                  <h4 class="fw-bold text-dark mb-0" id="kpiTotalCartera">S/ 0.00</h4>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card kpi-card kpi-success shadow-sm border-0">
+                <div class="card-body">
+                  <small class="text-muted fw-bold">CRÉDITOS CANCELADOS</small>
+                  <h4 class="fw-bold text-success mb-0" id="kpiCancelados">0</h4>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card kpi-card kpi-warning shadow-sm border-0">
+                <div class="card-body">
+                  <small class="text-muted fw-bold">CRÉDITOS VIGENTES AL DÍA</small>
+                  <h4 class="fw-bold text-primary mb-0" id="kpiVigentes">0</h4>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card kpi-card kpi-danger shadow-sm border-0">
+                <div class="card-body">
+                  <small class="text-muted fw-bold">EN MORA / COBRANZA</small>
+                  <h4 class="fw-bold text-danger mb-0" id="kpiMorosos">0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card shadow-sm border-0">
+            <div class="card-header card-header-custom fw-bold d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-telephone-outbound me-2"></i>Seguimiento de Cartera, Cancelados y Morosos</span>
+              <div>
+                <select class="form-select form-select-sm d-inline-block w-auto" id="filtroEstadoCobranza" onchange="renderizarTablaCobranzas()">
+                  <option value="TODOS">Todos los Estados</option>
+                  <option value="MOROSO">Solo Morosos (Analizar en Cobranzas)</option>
+                  <option value="VIGENTE">Vigentes al Día</option>
+                  <option value="CANCELADO">Cancelados (Pagados)</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light small text-muted">
+                    <tr>
+                      <th class="ps-3">ID CRÉDITO</th>
+                      <th>CLIENTE</th>
+                      <th>MONTO ORIG.</th>
+                      <th>SALDO PENDIENTE</th>
+                      <th>DÍAS ATRASO</th>
+                      <th>ESTADO</th>
+                      <th>ACCIÓN COBRANZA (<code>cobranzas</code>)</th>
+                      <th class="text-center pe-3">GESTIÓN</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyCobranzas"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-PANEL C: ANÁLISIS FINANCIERO Y RATIOS DE LA EMPRESA -->
+        <div class="tab-pane fade" id="panel-ratios" role="tabpanel">
+          <div class="row g-4 mb-4">
+            <!-- TARJETAS DE RATIOS FINANCIEROS -->
+            <div class="col-md-4">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold">
+                  <i class="bi bi-percent me-2 text-warning"></i>1. Ratio de Morosidad (Cartera Pesada)
+                </div>
+                <div class="card-body">
+                  <h2 class="fw-bold text-danger" id="ratioMorosidad">0.00%</h2>
+                  <p class="small text-muted mb-2">Fórmula: <code>(Cartera Vencida y Morosa / Cartera Bruta Total) × 100</code></p>
+                  <div class="alert alert-light border small mb-0" id="diagMorosidad">Calculando diagnóstico...</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold">
+                  <i class="bi bi-droplet-half me-2 text-info"></i>2. Liquidez Corriente (Cuentas Corrientes)
+                </div>
+                <div class="card-body">
+                  <h2 class="fw-bold text-primary" id="ratioLiquidez">0.00x</h2>
+                  <p class="small text-muted mb-2">Fórmula: <code>Activo Corriente (Caja + Ctas Ctes) / Pasivo Corto Plazo</code></p>
+                  <div class="alert alert-light border small mb-0" id="diagLiquidez">Calculando diagnóstico...</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold">
+                  <i class="bi bi-cash-stack me-2 text-success"></i>3. Rentabilidad sobre Cartera (ROA Crediticio)
+                </div>
+                <div class="card-body">
+                  <h2 class="fw-bold text-success" id="ratioRentabilidad">0.00%</h2>
+                  <p class="small text-muted mb-2">Fórmula: <code>(Ingresos por Intereses + Moras) / Cartera Colocada × 100</code></p>
+                  <div class="alert alert-light border small mb-0" id="diagRentabilidad">Calculando diagnóstico...</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold">
+                  <i class="bi bi-shield-fill-exclamation me-2 text-warning"></i>4. Cobertura de Provisiones sobre Mora
+                </div>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h3 class="fw-bold text-dark mb-1" id="ratioCobertura">0.00%</h3>
+                      <p class="small text-muted mb-0">Provisiones Contables / Cartera Morosa (Meta SBS: &gt; 100%)</p>
+                    </div>
+                    <span class="badge bg-success fs-6" id="badgeCobertura">ÓPTIMO</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-dark text-white fw-bold">
+                  <i class="bi bi-arrow-repeat me-2 text-info"></i>5. Índice de Recuperación de Cobranzas
+                </div>
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h3 class="fw-bold text-dark mb-1" id="ratioRecuperacion">0.00%</h3>
+                      <p class="small text-muted mb-0">Monto Recuperado (<code>transacciones_historico</code>) / Total Exigible</p>
+                    </div>
+                    <span class="badge bg-primary fs-6" id="badgeRecuperacion">SALUDABLE</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GRÁFICO Y TABLA DE DECISIÓN POR CARGO -->
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header card-header-custom fw-bold">Distribución de Cartera por Estado</div>
+                <div class="card-body d-flex justify-content-center align-items-center">
+                  <canvas id="graficoCartera" style="max-height: 260px;"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card shadow-sm border-0 h-100">
+                <div class="card-header card-header-custom fw-bold">Auditoría de Decisiones por Cargo (<code>vw_decisiones_por_cargo</code>)</div>
+                <div class="card-body p-0">
+                  <table class="table table-sm table-striped mb-0">
+                    <thead class="table-light small">
+                      <tr>
+                        <th class="ps-3">CARGO (<code>personal</code>)</th>
+                        <th class="text-center">CRÉDITOS COLOCADOS</th>
+                        <th class="text-end pe-3">MONTO GESTIONADO</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbodyDecisionesCargo"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-PANEL D: HISTORIAL DE TRANSACCIONES CONTABLES -->
+        <div class="tab-pane fade" id="panel-transacciones" role="tabpanel">
+          <div class="card shadow-sm border-0">
+            <div class="card-header card-header-custom fw-bold">
+              <i class="bi bi-journal-check me-2"></i>Registro Contable (<code>transaccion</code> &amp; <code>transacciones_historico</code>)
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 small">
+                  <thead class="table-dark">
+                    <tr>
+                      <th class="ps-3">ID TX</th>
+                      <th>FECHA</th>
+                      <th>CUENTA CORRIENTE</th>
+                      <th>TIPO MOVIMIENTO</th>
+                      <th>GLOSA / DETALLE</th>
+                      <th class="text-end pe-3">MONTO (S/)</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyTransacciones"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL DETALLE DE CRÉDITO Y ANÁLISIS DE COBRANZA -->
+  <div class="modal fade" id="modalDetalleCredito" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Expediente Integral del Crédito</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="contenidoModalDetalle"></div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // =========================================================================
+    // BASE DE DATOS SIMULADA EN MEMORIA (ESTRUCTURA POSTGRESQL DEL GRUPO)
+    // =========================================================================
+    const db = {
+      personal: [
+        { id_personal: 'P01', nombre: 'Ana Torres', cargo: 'Analista de Riesgos', limite_aprobacion: 25000 },
+        { id_personal: 'P02', nombre: 'Luis Paredes', cargo: 'Gestor Comercial', limite_aprobacion: 10000 },
+        { id_personal: 'P03', nombre: 'Dra. Carmen Silva', cargo: 'Gerente de Finanzas', limite_aprobacion: 100000 },
+        { id_personal: 'P04', nombre: 'Marco Ríos', cargo: 'Gestor de Cobranzas', limite_aprobacion: 0 }
+      ],
+      clientes: [
+        { id_cliente: 1, tipo_doc: 'DNI', num_doc: '76112233', nombre: 'Carlos Mendoza', telefono: '958112233', ingresos: 4200.00 },
+        { id_cliente: 2, tipo_doc: 'RUC', num_doc: '20601234561', nombre: 'Inversiones Sur SAC', telefono: '054-223344', ingresos: 18500.00 },
+        { id_cliente: 3, tipo_doc: 'DNI', num_doc: '45889911', nombre: 'Jorge Quispe', telefono: '959445566', ingresos: 2100.00 }
+      ],
+      cuenta_corriente: [
+        { id_cuenta: 'CC-00101', id_cliente: 1, saldo: 3450.00, estado: 'ACTIVA' },
+        { id_cuenta: 'CC-00102', id_cliente: 2, saldo: 28900.00, estado: 'ACTIVA' },
+        { id_cuenta: 'CC-00103', id_cliente: 3, saldo: 120.50, estado: 'BLOQUEADA_MORA' }
+      ],
+      central_riesgo: [
+        { id_cliente: 1, calificacion: 'NORMAL', score: 860, deuda_externa: 450.00, reportado_infocorp: false },
+        { id_cliente: 2, calificacion: 'NORMAL', score: 920, deuda_externa: 3200.00, reportado_infocorp: false },
+        { id_cliente: 3, calificacion: 'DEFICIENTE', score: 410, deuda_externa: 4800.00, reportado_infocorp: true }
+      ],
+      historial_crediticio: [
+        { id_cliente: 1, creditos_previos: 3, puntualidad_pct: 98.5 },
+        { id_cliente: 2, creditos_previos: 5, puntualidad_pct: 100.0 },
+        { id_cliente: 3, creditos_previos: 2, puntualidad_pct: 62.0 }
+      ],
+      creditos: [
+        {
+          id_credito: 'CR-2026-001', id_cliente: 1, id_personal: 'P02', tipo: 'Consumo Personal',
+          monto: 3000.00, tasa_tea: 24.0, plazo: 6, cuota_mensual: 535.58,
+          saldo_pendiente: 0.00, interes_generado: 213.48, dias_atraso: 0,
+          estado: 'CANCELADO', fecha_desembolso: '2026-03-10', destino: 'Equipamiento hogar'
+        },
+        {
+          id_credito: 'CR-2026-002', id_cliente: 2, id_personal: 'P03', tipo: 'Capital de Trabajo',
+          monto: 20000.00, tasa_tea: 18.5, plazo: 12, cuota_mensual: 1838.60,
+          saldo_pendiente: 11031.60, interes_generado: 2063.20, dias_atraso: 0,
+          estado: 'VIGENTE', fecha_desembolso: '2026-06-15', destino: 'Compra flota menor'
+        },
+        {
+          id_credito: 'CR-2026-003', id_cliente: 3, id_personal: 'P02', tipo: 'Microempresa',
+          monto: 4500.00, tasa_tea: 32.0, plazo: 12, cuota_mensual: 443.12,
+          saldo_pendiente: 3544.96, interes_generado: 817.44, dias_atraso: 48,
+          estado: 'MOROSO', fecha_desembolso: '2026-05-02', destino: 'Capital tienda abarrotes'
+        },
+        {
+          id_credito: 'CR-2026-004', id_cliente: 1, id_personal: 'P01', tipo: 'Activo Fijo',
+          monto: 8500.00, tasa_tea: 15.0, plazo: 18, cuota_mensual: 530.25,
+          saldo_pendiente: 8500.00, interes_generado: 1044.50, dias_atraso: 0,
+          estado: 'PENDIENTE', fecha_desembolso: '2026-11-24', destino: 'Servidor y equipos POS'
+        }
+      ],
+      cobranzas: [
+        { id_cobranza: 'COB-01', id_credito: 'CR-2026-003', gestor: 'Marco Ríos', accion: 'Notificación Pre-Judicial + Llamada', estado_gestion: 'EN_SEGUIMIENTO', mora_acumulada: 215.40 }
+      ],
+      transacciones: [
+        { id_tx: 'TX-9001', fecha: '2026-11-10', cuenta: 'CC-00101', tipo: 'ABONO_CUOTA', glosa: 'Cancelación total CR-2026-001', monto: 535.58 },
+        { id_tx: 'TX-9002', fecha: '2026-11-15', cuenta: 'CC-00102', tipo: 'ABONO_CUOTA', glosa: 'Pago cuota #5 CR-2026-002', monto: 1838.60 },
+        { id_tx: 'TX-9003', fecha: '2026-06-15', cuenta: 'CC-00102', tipo: 'DESEMBOLSO', glosa: 'Desembolso crédito CR-2026-002', monto: 20000.00 }
+      ]
+    };
+
+    let chartInstance = null;
+
+    // =========================================================================
+    // INICIALIZACIÓN Y CAMBIO DE VISTAS
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarDatosCliente();
+      simularCredito();
+      actualizarTodoAdmin();
+    });
+
+    function cambiarVista(vista) {
+      ocultarAlertas();
+      if (vista === 'cliente') {
+        document.getElementById('seccionCliente').classList.remove('d-none');
+        document.getElementById('seccionAdmin').classList.add('d-none');
+        cargarDatosCliente();
+      } else {
+        document.getElementById('seccionCliente').classList.add('d-none');
+        document.getElementById('seccionAdmin').classList.remove('d-none');
+        actualizarTodoAdmin();
+      }
+    }
+
+    // =========================================================================
+    // LÓGICA VISTA CLIENTE
+    // =========================================================================
+    function cargarDatosCliente() {
+      const val = document.getElementById('selectClienteDemo').value;
+      if (val === 'nuevo') {
+        const nuevoNombre = prompt("Ingrese Nombre o Razón Social del nuevo cliente:");
+        const nuevoDoc = prompt("Ingrese DNI (8 dígitos) o RUC (11 dígitos):");
+        const nuevoIngreso = parseFloat(prompt("Ingrese Ingresos Mensuales (S/):", "3500"));
+        if (nuevoNombre && nuevoDoc && !isNaN(nuevoIngreso)) {
+          const newId = db.clientes.length + 1;
+          db.clientes.push({
+            id_cliente: newId,
+            tipo_doc: nuevoDoc.length === 11 ? 'RUC' : 'DNI',
+            num_doc: nuevoDoc,
+            nombre: nuevoNombre,
+            telefono: '950000000',
+            ingresos: nuevoIngreso
+          });
+          db.cuenta_corriente.push({ id_cuenta: `CC-0010${newId}`, id_cliente: newId, saldo: 1000.00, estado: 'ACTIVA' });
+          db.central_riesgo.push({ id_cliente: newId, calificacion: 'NORMAL', score: 780, deuda_externa: 0, reportado_infocorp: false });
+          db.historial_crediticio.push({ id_cliente: newId, creditos_previos: 0, puntualidad_pct: 100 });
+
+          const opt = document.createElement('option');
+          opt.value = newId;
+          opt.textContent = `${nuevoDoc} - ${nuevoNombre} (Nuevo)`;
+          const sel = document.getElementById('selectClienteDemo');
+          sel.insertBefore(opt, sel.lastElementChild);
+          sel.value = newId;
+        } else {
+          document.getElementById('selectClienteDemo').value = "1";
+        }
+      }
+
+      const idCli = parseInt(document.getElementById('selectClienteDemo').value);
+      const cli = db.clientes.find(c => c.id_cliente === idCli);
+      const cc = db.cuenta_corriente.find(c => c.id_cliente === idCli);
+      const cr = db.central_riesgo.find(c => c.id_cliente === idCli);
+
+      document.getElementById('cli_doc').value = `${cli.tipo_doc}: ${cli.num_doc}`;
+      document.getElementById('cli_nombre').value = cli.nombre;
+      document.getElementById('cli_cuenta').value = `${cc.id_cuenta} (${cc.estado})`;
+      document.getElementById('cli_saldo').value = `S/ ${cc.saldo.toFixed(2)}`;
+      document.getElementById('cli_ingresos').value = `S/ ${cli.ingresos.toFixed(2)}`;
+
+      // Central de Riesgo
+      const badgeSbs = document.getElementById('cli_calificacion_sbs');
+      badgeSbs.textContent = cr.calificacion;
+      badgeSbs.className = `badge fs-6 ${cr.calificacion === 'NORMAL' ? 'bg-success' : 'bg-danger'}`;
+      document.getElementById('cli_score').textContent = `${cr.score} / 1000 pts`;
+      document.getElementById('cli_deuda_ext').textContent = `S/ ${cr.deuda_externa.toFixed(2)}`;
+
+      renderizarCreditosCliente(idCli);
+    }
+
+    function simularCredito() {
+      const selTipo = document.getElementById('cred_tipo');
+      const tea = parseFloat(selTipo.options[selTipo.selectedIndex].getAttribute('data-tea')) / 100;
+      const monto = parseFloat(document.getElementById('cred_monto').value) || 0;
+      const plazo = parseInt(document.getElementById('cred_plazo').value) || 12;
+
+      // Tasa Efectiva Mensual (TEM)
+      const tem = Math.pow(1 + tea, 1 / 12) - 1;
+      const cuota = monto * (tem * Math.pow(1 + tem, plazo)) / (Math.pow(1 + tem, plazo) - 1);
+      const totalPagar = cuota * plazo;
+      const interesTotal = totalPagar - monto;
+
+      document.getElementById('sim_cuota').textContent = `S/ ${isFinite(cuota) ? cuota.toFixed(2) : '0.00'}`;
+      document.getElementById('sim_interes').textContent = `S/ ${isFinite(interesTotal) ? interesTotal.toFixed(2) : '0.00'}`;
+      document.getElementById('sim_total').textContent = `S/ ${isFinite(totalPagar) ? totalPagar.toFixed(2) : '0.00'}`;
+    }
+
+    function enviarSolicitudCredito() {
+      ocultarAlertas();
+      const idCli = parseInt(document.getElementById('selectClienteDemo').value);
+      const cli = db.clientes.find(c => c.id_cliente === idCli);
+      const cr = db.central_riesgo.find(c => c.id_cliente === idCli);
+      const selTipo = document.getElementById('cred_tipo');
+      const tipo = selTipo.value;
+      const tea = parseFloat(selTipo.options[selTipo.selectedIndex].getAttribute('data-tea'));
+      const monto = parseFloat(document.getElementById('cred_monto').value);
+      const plazo = parseInt(document.getElementById('cred_plazo').value);
+      const asesor = document.getElementById('cred_asesor').value;
+      const destino = document.getElementById('cred_destino').value.trim();
+
+      if (isNaN(monto) || monto < 500) return mostrarError("El monto mínimo a solicitar es S/ 500.00");
+      if (!destino) return mostrarError("Especifique el destino del crédito.");
+
+      // Cálculo cuota
+      const tem = Math.pow(1 + (tea / 100), 1 / 12) - 1;
+      const cuota = monto * (tem * Math.pow(1 + tem, plazo)) / (Math.pow(1 + tem, plazo) - 1);
+      const interes = (cuota * plazo) - monto;
+
+      // Validación de ratio cuota/ingreso (máx 40%)
+      if (cuota > cli.ingresos * 0.45) {
+        return mostrarError(`Capacidad de pago excedida: La cuota (S/ ${cuota.toFixed(2)}) supera el 45% de los ingresos de ${cli.nombre}.`);
+      }
+
+      const nuevoId = `CR-2026-00${db.creditos.length + 1}`;
+      db.creditos.push({
+        id_credito: nuevoId,
+        id_cliente: idCli,
+        id_personal: asesor,
+        tipo: tipo,
+        monto: monto,
+        tasa_tea: tea,
+        plazo: plazo,
+        cuota_mensual: cuota,
+        saldo_pendiente: monto,
+        interes_generado: interes,
+        dias_atraso: 0,
+        estado: 'PENDIENTE',
+        fecha_desembolso: new Date().toISOString().split('T')[0],
+        destino: destino
+      });
+
+      renderizarCreditosCliente(idCli);
+      mostrarExito(`Solicitud ${nuevoId} registrada en tabla 'creditos' (Estado: PENDIENTE DE APROBACIÓN). Cambie a "Vista Administrador" para evaluarla.`);
+    }
+
+    function renderizarCreditosCliente(idCli) {
+      const tbody = document.getElementById('tbodyCreditosCliente');
+      const lista = db.creditos.filter(c => c.id_cliente === idCli);
+      tbody.innerHTML = '';
+
+      if (lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Sin créditos registrados.</td></tr>';
+        return;
+      }
+
+      lista.forEach(c => {
+        let badge = 'bg-secondary';
+        if (c.estado === 'VIGENTE') badge = 'bg-primary';
+        if (c.estado === 'CANCELADO') badge = 'bg-success';
+        if (c.estado === 'MOROSO') badge = 'bg-danger';
+        if (c.estado === 'PENDIENTE') badge = 'bg-warning text-dark';
+
+        const btnPagar = (c.estado === 'VIGENTE' || c.estado === 'MOROSO')
+          ? `<button class="btn btn-sm btn-outline-success fw-bold" onclick="pagarCuotaCliente('${c.id_credito}')"><i class="bi bi-cash"></i> Pagar Cuota</button>`
+          : `<span class="text-muted small">-</span>`;
+
+        tbody.innerHTML += `
+          <tr>
+            <td class="ps-3">
+              <strong class="d-block">${c.id_credito}</strong>
+              <small class="text-muted">${c.tipo}</small>
+            </td>
+            <td class="fw-bold">S/ ${c.saldo_pendiente.toFixed(2)}</td>
+            <td><span class="badge ${badge}">${c.estado}</span></td>
+            <td class="text-end pe-3">${btnPagar}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function pagarCuotaCliente(idCredito) {
+      ocultarAlertas();
+      const cred = db.creditos.find(c => c.id_credito === idCredito);
+      const cc = db.cuenta_corriente.find(c => c.id_cliente === cred.id_cliente);
+
+      const pago = Math.min(cred.cuota_mensual, cred.saldo_pendiente);
+      if (cc.saldo < pago) {
+        return mostrarError(`Saldo insuficiente en Cuenta Corriente (${cc.id_cuenta}). Saldo actual: S/ ${cc.saldo.toFixed(2)}`);
+      }
+
+      cc.saldo -= pago;
+      cred.saldo_pendiente -= pago;
+      if (cred.saldo_pendiente <= 0.05) {
+        cred.saldo_pendiente = 0;
+        cred.estado = 'CANCELADO';
+        cred.dias_atraso = 0;
+      } else if (cred.estado === 'MOROSO') {
+        cred.estado = 'VIGENTE';
+        cred.dias_atraso = 0;
+        cc.estado = 'ACTIVA';
+      }
+
+      db.transacciones.unshift({
+        id_tx: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+        fecha: new Date().toISOString().split('T')[0],
+        cuenta: cc.id_cuenta,
+        tipo: 'ABONO_CUOTA',
+        glosa: `Pago cuota crédito ${cred.id_credito}`,
+        monto: pago
+      });
+
+      cargarDatosCliente();
+      mostrarExito(`Pago de S/ ${pago.toFixed(2)} procesado en 'transaccion'. Nuevo saldo del crédito: S/ ${cred.saldo_pendiente.toFixed(2)} (${cred.estado}).`);
+    }
+
+    // =========================================================================
+    // LÓGICA VISTA ADMINISTRADOR (ANALISTA, COBRANZAS Y RATIOS)
+    // =========================================================================
+    function actualizarTodoAdmin() {
+      renderizarTablaAnalista();
+      renderizarTablaCobranzas();
+      calcularRatiosFinancieros();
+      renderizarTransacciones();
+    }
+
+    function renderizarTablaAnalista() {
+      const tbody = document.getElementById('tbodyAnalista');
+      tbody.innerHTML = '';
+
+      db.creditos.forEach(c => {
+        const cli = db.clientes.find(x => x.id_cliente === c.id_cliente);
+        const cr = db.central_riesgo.find(x => x.id_cliente === c.id_cliente);
+        const cc = db.cuenta_corriente.find(x => x.id_cliente === c.id_cliente);
+        const pers = db.personal.find(x => x.id_personal === c.id_personal);
+
+        const scoreClass = cr.score >= 750 ? 'badge-score-alto' : (cr.score >= 550 ? 'badge-score-medio' : 'badge-score-bajo');
+        const nivelAprob = c.monto <= 10000 ? 'Gestor Comercial' : (c.monto <= 25000 ? 'Analista Riesgos' : 'Gerencia Finanzas');
+
+        let acciones = '';
+        if (c.estado === 'PENDIENTE') {
+          acciones = `
+            <button class="btn btn-success btn-sm me-1" onclick="decidirCredito('${c.id_credito}', 'APROBAR')" title="Aprobar y Desembolsar"><i class="bi bi-check-lg"></i></button>
+            <button class="btn btn-danger btn-sm" onclick="decidirCredito('${c.id_credito}', 'RECHAZAR')" title="Rechazar Solicitud"><i class="bi bi-x-lg"></i></button>
+          `;
+        } else {
+          acciones = `<span class="badge bg-light text-dark border">${c.estado}</span>`;
+        }
+
+        tbody.innerHTML += `
+          <tr>
+            <td class="ps-3">
+              <strong>${c.id_credito}</strong>
+              <small class="d-block text-muted">${c.tipo}</small>
+            </td>
+            <td>
+              <strong>${cli.nombre}</strong>
+              <small class="d-block text-muted">${cli.tipo_doc}: ${cli.num_doc}</small>
+            </td>
+            <td>
+              <span class="badge ${scoreClass}">${cr.calificacion} (${cr.score} pts)</span>
+              <small class="d-block text-muted">Deuda Ext: S/ ${cr.deuda_externa.toFixed(2)}</small>
+            </td>
+            <td>
+              <small class="d-block">Ingresos: <strong>S/ ${cli.ingresos.toFixed(2)}</strong></small>
+              <small class="text-primary">Cta: ${cc.id_cuenta} (S/ ${cc.saldo.toFixed(2)})</small>
+            </td>
+            <td>
+              <strong class="text-dark">S/ ${c.monto.toFixed(2)}</strong>
+              <small class="d-block text-muted">Cuota: S/ ${c.cuota_mensual.toFixed(2)} (${c.plazo}m)</small>
+            </td>
+            <td>
+              <span class="badge bg-secondary">${nivelAprob}</span>
+              <small class="d-block text-muted">Resp: ${pers ? pers.nombre : 'Sistema'}</small>
+            </td>
+            <td class="text-center pe-3">
+              ${acciones}
+              <button class="btn btn-outline-dark btn-sm ms-1" onclick="verExpedienteCredito('${c.id_credito}')" title="Ver Expediente Completo"><i class="bi bi-eye"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function decidirCredito(idCredito, accion) {
+      ocultarAlertas();
+      const cred = db.creditos.find(c => c.id_credito === idCredito);
+      const cc = db.cuenta_corriente.find(c => c.id_cliente === cred.id_cliente);
+
+      if (accion === 'APROBAR') {
+        cred.estado = 'VIGENTE';
+        cc.saldo += cred.monto; // Desembolso a cuenta corriente
+        db.transacciones.unshift({
+          id_tx: `TX-${Math.floor(1000 + Math.random() * 9000)}`,
+          fecha: new Date().toISOString().split('T')[0],
+          cuenta: cc.id_cuenta,
+          tipo: 'DESEMBOLSO',
+          glosa: `Desembolso aprobado crédito ${cred.id_credito}`,
+          monto: cred.monto
+        });
+        mostrarExito(`Crédito ${cred.id_credito} APROBADO. Se abonaron S/ ${cred.monto.toFixed(2)} a la cuenta ${cc.id_cuenta}.`);
+      } else {
+        cred.estado = 'RECHAZADO';
+        cred.saldo_pendiente = 0;
+        mostrarError(`Solicitud ${cred.id_credito} RECHAZADA por evaluación de riesgo.`);
+      }
+      actualizarTodoAdmin();
+    }
+
+    function renderizarTablaCobranzas() {
+      const tbody = document.getElementById('tbodyCobranzas');
+      const filtro = document.getElementById('filtroEstadoCobranza').value;
+      tbody.innerHTML = '';
+
+      let totalCartera = 0, cntCancelados = 0, cntVigentes = 0, cntMorosos = 0;
+
+      db.creditos.forEach(c => {
+        if (c.estado !== 'RECHAZADO' && c.estado !== 'PENDIENTE') totalCartera += c.monto;
+        if (c.estado === 'CANCELADO') cntCancelados++;
+        if (c.estado === 'VIGENTE') cntVigentes++;
+        if (c.estado === 'MOROSO') cntMorosos++;
+
+        if (filtro !== 'TODOS' && c.estado !== filtro) return;
+        if (c.estado === 'PENDIENTE' || c.estado === 'RECHAZADO') return;
+
+        const cli = db.clientes.find(x => x.id_cliente === c.id_cliente);
+        const cob = db.cobranzas.find(x => x.id_credito === c.id_credito);
+
+        let badge = 'bg-primary';
+        if (c.estado === 'CANCELADO') badge = 'bg-success';
+        if (c.estado === 'MOROSO') badge = 'bg-danger';
+
+        const gestionText = cob
+          ? `<span class="text-danger fw-bold small"><i class="bi bi-telephone-fill me-1"></i>${cob.accion}</span>`
+          : (c.estado === 'MOROSO' ? '<span class="text-warning fw-bold small">Pendiente derivar</span>' : '<span class="text-muted small">Sin incidencia</span>');
+
+        const btnAccion = c.estado === 'VIGENTE'
+          ? `<button class="btn btn-outline-danger btn-sm" onclick="simularMora('${c.id_credito}')" title="Simular Atraso de Pago">Simular Mora</button>`
+          : (c.estado === 'MOROSO'
+            ? `<button class="btn btn-danger btn-sm" onclick="registrarGestionCobranza('${c.id_credito}')"><i class="bi bi-megaphone"></i> Gestionar</button>`
+            : `<button class="btn btn-outline-secondary btn-sm" onclick="verExpedienteCredito('${c.id_credito}')">Ver Ficha</button>`);
+
+        tbody.innerHTML += `
+          <tr class="${c.estado === 'MOROSO' ? 'table-danger' : ''}">
+            <td class="ps-3 fw-bold">${c.id_credito}</td>
+            <td>${cli.nombre} <small class="text-muted d-block">${cli.num_doc}</small></td>
+            <td>S/ ${c.monto.toFixed(2)}</td>
+            <td class="fw-bold">S/ ${c.saldo_pendiente.toFixed(2)}</td>
+            <td>${c.dias_atraso > 0 ? `<span class="badge bg-danger">${c.dias_atraso} días</span>` : '0 días'}</td>
+            <td><span class="badge ${badge}">${c.estado}</span></td>
+            <td>${gestionText}</td>
+            <td class="text-center pe-3">${btnAccion}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('kpiTotalCartera').textContent = `S/ ${totalCartera.toFixed(2)}`;
+      document.getElementById('kpiCancelados').textContent = cntCancelados;
+      document.getElementById('kpiVigentes').textContent = cntVigentes;
+      document.getElementById('kpiMorosos').textContent = cntMorosos;
+    }
+
+    function simularMora(idCredito) {
+      const cred = db.creditos.find(c => c.id_credito === idCredito);
+      cred.estado = 'MOROSO';
+      cred.dias_atraso = 32;
+      actualizarTodoAdmin();
+      mostrarError(`Alerta de Riesgo: El crédito ${idCredito} ha pasado a estado MOROSO (32 días de atraso). Debe analizarse en Cobranzas.`);
+    }
+
+    function registrarGestionCobranza(idCredito) {
+      const accion = prompt("Ingrese acción de cobranza (Ej: Carta Notarial, Acuerdo de Refinanciamiento, Llamada Persuasiva):", "Carta Notarial + Bloqueo Cuenta");
+      if (!accion) return;
+
+      const existente = db.cobranzas.find(x => x.id_credito === idCredito);
+      if (existente) {
+        existente.accion = accion;
+      } else {
+        db.cobranzas.push({
+          id_cobranza: `COB-0${db.cobranzas.length + 1}`,
+          id_credito: idCredito,
+          gestor: 'Marco Ríos',
+          accion: accion,
+          estado_gestion: 'ACTIVA',
+          mora_acumulada: 150.00
+        });
+      }
+      actualizarTodoAdmin();
+      mostrarExito(`Gestión registrada en tabla 'cobranzas' para el crédito ${idCredito}.`);
+    }
+
+    function verExpedienteCredito(idCredito) {
+      const c = db.creditos.find(x => x.id_credito === idCredito);
+      const cli = db.clientes.find(x => x.id_cliente === c.id_cliente);
+      const cr = db.central_riesgo.find(x => x.id_cliente === c.id_cliente);
+      const hist = db.historial_crediticio.find(x => x.id_cliente === c.id_cliente);
+      const cob = db.cobranzas.find(x => x.id_credito === c.id_credito);
+
+      const requiereCobranza = c.estado === 'MOROSO' || c.dias_atraso > 15;
+
+      document.getElementById('contenidoModalDetalle').innerHTML = `
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h6 class="fw-bold text-primary border-bottom pb-1">Datos del Cliente & Historial</h6>
+            <p class="mb-1 small"><strong>Cliente:</strong> ${cli.nombre} (${cli.tipo_doc}: ${cli.num_doc})</p>
+            <p class="mb-1 small"><strong>Ingresos Declarados:</strong> S/ ${cli.ingresos.toFixed(2)}</p>
+            <p class="mb-1 small"><strong>Puntualidad Histórica:</strong> ${hist.puntualidad_pct}% (${hist.creditos_previos} créditos previos)</p>
+            <p class="mb-0 small"><strong>Central de Riesgo:</strong> ${cr.calificacion} (Score: ${cr.score})</p>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-bold text-primary border-bottom pb-1">Condiciones del Crédito (${c.id_credito})</h6>
+            <p class="mb-1 small"><strong>Monto Desembolsado:</strong> S/ ${c.monto.toFixed(2)} (TEA ${c.tasa_tea}%)</p>
+            <p class="mb-1 small"><strong>Saldo Pendiente:</strong> S/ ${c.saldo_pendiente.toFixed(2)}</p>
+            <p class="mb-1 small"><strong>Estado Actual:</strong> <span class="badge ${c.estado === 'MOROSO' ? 'bg-danger' : (c.estado === 'CANCELADO' ? 'bg-success' : 'bg-primary')}">${c.estado}</span></p>
+            <p class="mb-0 small"><strong>Destino:</strong> ${c.destino}</p>
+          </div>
+          <div class="col-12 mt-3">
+            <div class="alert ${requiereCobranza ? 'alert-danger' : 'alert-success'} mb-0">
+              <strong><i class="bi bi-cpu me-1"></i>Dictamen del Sistema de Cobranzas:</strong><br>
+              ${requiereCobranza
+                ? `⚠️ EL CLIENTE ES MOROSO (${c.dias_atraso} días de atraso). Se recomienda análisis inmediato en el área de Cobranzas y ejecución de garantías. Acción actual: ${cob ? cob.accion : 'Pendiente de asignación'}.`
+                : (c.estado === 'CANCELADO'
+                  ? `✅ CRÉDITO CANCELADO EN SU TOTALIDAD. Cliente apto para renovación con tasa preferencial.`
+                  : `✅ CRÉDITO AL DÍA. No requiere intervención de cobranzas.`)}
+            </div>
+          </div>
+        </div>
+      `;
+      new bootstrap.Modal(document.getElementById('modalDetalleCredito')).show();
+    }
+
+    // =========================================================================
+    // CÁLCULO DE RATIOS FINANCIEROS Y CONTABLES DE LA EMPRESA
+    // =========================================================================
+    function calcularRatiosFinancieros() {
+      let carteraBruta = 0;
+      let carteraMorosa = 0;
+      let carteraVigente = 0;
+      let carteraCancelada = 0;
+      let ingresosFinancieros = 0;
+
+      db.creditos.forEach(c => {
+        if (c.estado === 'VIGENTE' || c.estado === 'MOROSO') {
+          carteraBruta += c.saldo_pendiente;
+        }
+        if (c.estado === 'MOROSO') {
+          carteraMorosa += c.saldo_pendiente;
+        }
+        if (c.estado === 'VIGENTE') {
+          carteraVigente += c.saldo_pendiente;
+        }
+        if (c.estado === 'CANCELADO') {
+          carteraCancelada += c.monto;
+        }
+        if (c.estado !== 'RECHAZADO' && c.estado !== 'PENDIENTE') {
+          ingresosFinancieros += c.interes_generado;
+        }
+      });
+
+      // 1. Ratio de Morosidad (%)
+      const ratioMora = carteraBruta > 0 ? (carteraMorosa / carteraBruta) * 100 : 0;
+      document.getElementById('ratioMorosidad').textContent = `${ratioMora.toFixed(2)}%`;
+      document.getElementById('diagMorosidad').innerHTML = ratioMora > 8
+        ? `<span class="text-danger fw-bold">Riesgo Alto:</span> Supera el umbral prudencial del 8%. Urge gestión en <code>cobranzas</code>.`
+        : `<span class="text-success fw-bold">Controlado:</span> Cartera saludable dentro de los parámetros SBS.`;
+
+      // 2. Ratio de Liquidez Corriente (Saldos Ctas Ctes + Caja Base / Obligaciones Corto Plazo)
+      const totalCuentas = db.cuenta_corriente.reduce((acc, cc) => acc + cc.saldo, 0);
+      const cajaEmpresa = 45000.00;
+      const pasivoCortoPlazo = 32000.00;
+      const ratioLiq = (totalCuentas + cajaEmpresa) / pasivoCortoPlazo;
+      document.getElementById('ratioLiquidez').textContent = `${ratioLiq.toFixed(2)}x`;
+      document.getElementById('diagLiquidez').innerHTML = ratioLiq >= 1.5
+        ? `<span class="text-success fw-bold">Solvencia Óptima:</span> La empresa cubre ${ratioLiq.toFixed(2)} veces sus pasivos corrientes.`
+        : `<span class="text-warning fw-bold">Liquidez Ajustada:</span> Vigilar flujo de caja.`;
+
+      // 3. Rentabilidad sobre Cartera (ROA Crediticio)
+      const totalColocado = carteraBruta + carteraCancelada;
+      const ratioRent = totalColocado > 0 ? (ingresosFinancieros / totalColocado) * 100 : 0;
+      document.getElementById('ratioRentabilidad').textContent = `${ratioRent.toFixed(2)}%`;
+      document.getElementById('diagRentabilidad').innerHTML = `Generación bruta de <strong>S/ ${ingresosFinancieros.toFixed(2)}</strong> en intereses sobre S/ ${totalColocado.toFixed(2)} colocados.`;
+
+      // 4. Cobertura de Provisiones
+      const provisionContable = 4200.00;
+      const cobertura = carteraMorosa > 0 ? (provisionContable / carteraMorosa) * 100 : 100;
+      document.getElementById('ratioCobertura').textContent = `${cobertura.toFixed(1)}%`;
+
+      // 5. Recuperación de Cobranzas
+      const totalRecuperado = db.transacciones
+        .filter(t => t.tipo === 'ABONO_CUOTA')
+        .reduce((acc, t) => acc + t.monto, 0);
+      const tasaRecup = totalColocado > 0 ? ((totalRecuperado + carteraCancelada) / totalColocado) * 100 : 0;
+      document.getElementById('ratioRecuperacion').textContent = `${Math.min(100, tasaRecup).toFixed(1)}%`;
+
+      // Tabla vw_decisiones_por_cargo
+      const tbodyCargo = document.getElementById('tbodyDecisionesCargo');
+      tbodyCargo.innerHTML = '';
+      db.personal.forEach(p => {
+        const creds = db.creditos.filter(c => c.id_personal === p.id_personal && c.estado !== 'RECHAZADO');
+        const suma = creds.reduce((acc, c) => acc + c.monto, 0);
+        tbodyCargo.innerHTML += `
+          <tr>
+            <td class="ps-3"><strong>${p.cargo}</strong> <small class="text-muted d-block">${p.nombre}</small></td>
+            <td class="text-center">${creds.length}</td>
+            <td class="text-end pe-3 fw-bold">S/ ${suma.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      renderizarGrafico(carteraVigente, carteraMorosa, carteraCancelada);
+    }
+
+    function renderizarGrafico(vigente, morosa, cancelada) {
+      const ctx = document.getElementById('graficoCartera').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Cartera Vigente (S/)', 'Cartera Morosa (S/)', 'Créditos Cancelados (S/)'],
+          datasets: [{
+            data: [vigente, morosa, cancelada],
+            backgroundColor: ['#3b82f6', '#ef4444', '#10b981'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+
+    function renderizarTransacciones() {
+      const tbody = document.getElementById('tbodyTransacciones');
+      tbody.innerHTML = '';
+      db.transacciones.forEach(tx => {
+        const color = tx.tipo === 'ABONO_CUOTA' ? 'text-success' : 'text-primary';
+        tbody.innerHTML += `
+          <tr>
+            <td class="ps-3 fw-bold">${tx.id_tx}</td>
+            <td>${tx.fecha}</td>
+            <td><span class="badge bg-light text-dark border">${tx.cuenta}</span></td>
+            <td><span class="fw-bold ${color}">${tx.tipo}</span></td>
+            <td>${tx.glosa}</td>
+            <td class="text-end pe-3 fw-bold">S/ ${tx.monto.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // UTILIDADES DE ALERTAS
+    function mostrarError(msg) {
+      const el = document.getElementById('alertaError');
+      el.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-2"></i>${msg}`;
+      el.classList.remove('d-none');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function mostrarExito(msg) {
+      const el = document.getElementById('alertaExito');
+      el.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i>${msg}`;
+      el.classList.remove('d-none');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function ocultarAlertas() {
+      document.getElementById('alertaError').classList.add('d-none');
+      document.getElementById('alertaExito').classList.add('d-none');
+    }
+  </script>
+</body>
+</html>
